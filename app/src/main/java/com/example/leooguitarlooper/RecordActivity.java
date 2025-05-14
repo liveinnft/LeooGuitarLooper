@@ -225,7 +225,7 @@ public class RecordActivity extends AppCompatActivity {
             mediaRecorder.release();
             mediaRecorder = null;
             String trackId = UUID.randomUUID().toString();
-            String trackName = "Track " + trackCounter++;
+            String trackName = "Дорожка " + trackCounter++;
             trackList.add(new Track(fileName, trackId, trackName));
             trackAdapter.notifyItemInserted(trackList.size() - 1);
             progressBar.setVisibility(View.INVISIBLE);
@@ -367,7 +367,7 @@ public class RecordActivity extends AppCompatActivity {
 
     private void showRenameTrackDialog(int position) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Rename Track");
+        builder.setTitle("Переменуйте дорожку");
 
         final EditText input = new EditText(this);
         input.setText(trackList.get(position).getTrackName());

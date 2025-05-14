@@ -61,7 +61,6 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
             }
         });
 
-        // Обновление состояния проигрывания
         if (track.isPlaying()) {
             holder.ivPlaying.setVisibility(View.VISIBLE);
         } else {
