@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="8dp"
+    android:background="#21B1B0B0"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:padding="16dp">
+
+
+    <TextView
+        android:id="@+id/tv_track_name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:paddingStart="8dp"
+        android:text="Track Name"
+        android:textColor="@color/colorPrimary"
+        android:textSize="18sp" />
+
+    <ImageView
+        android:id="@+id/iv_playing"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:src="@drawable/ic_playing"
+        android:visibility="gone" />
+
+    <CheckBox
+        android:id="@+id/cb_mute"
+        style="@style/Widget.AppCompat.CompoundButton.CheckBox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:buttonTint="@color/colorPrimary"
+        android:paddingStart="8dp"
+        android:shadowColor="#813434"
+        android:text="откл."
+        android:textColor="@color/colorPrimary"
+        android:textColorHighlight="@color/colorPrimary"
+        android:textColorHint="@color/colorPrimary"
+        android:textColorLink="@color/colorPrimary"
+        android:textSize="18sp" />
+
+    <ImageButton
+        android:id="@+id/btn_rename"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:padding="8dp"
+        android:src="@drawable/ic_rename" />
+
+    <ImageButton
+        android:id="@+id/btn_delete"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:padding="8dp"
+        android:src="@drawable/ic_delete" />
+
+</LinearLayout>
