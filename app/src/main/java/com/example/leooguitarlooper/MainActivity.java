@@ -101,7 +101,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void showAddProjectDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("New Project");
+        builder.setTitle("Новый проект");
 
         final EditText input = new EditText(this);
         builder.setView(input);
@@ -117,14 +117,14 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
+        builder.setNegativeButton("Отмена", (dialog, which) -> dialog.cancel());
 
         builder.show();
     }
 
     private void showRenameProjectDialog(int position) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Rename Project");
+        builder.setTitle("Переменовать");
 
         final EditText input = new EditText(this);
         input.setText(projectList.get(position).getName());
@@ -139,7 +139,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
+        builder.setNegativeButton("Отмена", (dialog, which) -> dialog.cancel());
 
         builder.show();
     }

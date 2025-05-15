@@ -57,8 +57,8 @@ public class RecordActivity extends AppCompatActivity {
     private ImageButton btnStartRecording;
     private ImageButton btnStopRecording;
     private CountDownTimer countDownTimer;
-    private int trackCounter = 1;
-    private int longestTrackDuration = 0;
+    private int trackCounter = 1; // Добавлено для хранения текущего номера дорожки
+    private int longestTrackDuration = 0; // Длина самой длинной дорожки
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,7 +69,7 @@ public class RecordActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setDisplayShowHomeEnabled(true);
-        getSupportActionBar().setTitle("Назад к проектам");
+        getSupportActionBar().setTitle("Назад к проекту"); // Установка заголовка Toolbar
 
         projectId = getIntent().getStringExtra("project_id");
         projectName = getIntent().getStringExtra("project_name");
@@ -192,8 +192,9 @@ public class RecordActivity extends AppCompatActivity {
     }
 
     private void startRecording() {
-        stopAllTracks();
+        stopAllTracks(); // Остановить все предыдущие проигрывания
 
+        // Запуск всех дорожек для проигрывания во время записи
         for (Track track : trackList) {
             if (!track.isMuted()) {
                 MediaPlayer mediaPlayer = new MediaPlayer();
@@ -209,6 +210,7 @@ public class RecordActivity extends AppCompatActivity {
             }
         }
 
+        // Начало записи новой дорожки
         new RecordTask().execute();
     }
 
@@ -225,7 +227,7 @@ public class RecordActivity extends AppCompatActivity {
             mediaRecorder.release();
             mediaRecorder = null;
             String trackId = UUID.randomUUID().toString();
-            String trackName = "Дорожка " + trackCounter++;
+            String trackName = "Track " + trackCounter++; // Установка имени дорожки
             trackList.add(new Track(fileName, trackId, trackName));
             trackAdapter.notifyItemInserted(trackList.size() - 1);
             progressBar.setVisibility(View.INVISIBLE);
@@ -240,12 +242,13 @@ public class RecordActivity extends AppCompatActivity {
             btnStartRecording.setEnabled(true);
         }
 
-        stopAllTracks();
+        stopAllTracks(); // Остановить все проигрывания
     }
 
     private void playAllTracks() {
-        stopAllTracks();
+        stopAllTracks(); // Остановить все предыдущие проигрывания
 
+        // Определение длины самой длинной дорожки
         longestTrackDuration = 0;
         for (Track track : trackList) {
             if (!track.isMuted()) {
@@ -264,7 +267,7 @@ public class RecordActivity extends AppCompatActivity {
             }
         }
 
-
+        // Запуск всех дорожек для проигрывания
         for (int i = 0; i < trackList.size(); i++) {
             final Track track = trackList.get(i);
             if (!track.isMuted()) {
@@ -278,6 +281,7 @@ public class RecordActivity extends AppCompatActivity {
                     trackAdapter.notifyItemChanged(i);
                     Log.d("RecordActivity", "Playing track: " + track.getTrackName());
 
+                    // Обновление прогресса проигрывания
                     final int finalI = i;
                     mediaPlayer.setOnCompletionListener(mp -> {
                         track.setPlaying(false);
@@ -367,7 +371,7 @@ public class RecordActivity extends AppCompatActivity {
 
     private void showRenameTrackDialog(int position) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Переменуйте дорожку");
+        builder.setTitle("Rename Track");
 
         final EditText input = new EditText(this);
         input.setText(trackList.get(position).getTrackName());
