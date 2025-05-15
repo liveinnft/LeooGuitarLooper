@@ -5,10 +5,10 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
@@ -42,7 +42,9 @@ public class RecordActivity extends AppCompatActivity {
     private List<Track> trackList = new ArrayList<>();
     private ProgressBar progressBar;
     private SeekBar seekBar;
-    private Handler handler = new Handler();
+    private Handler mainHandler = new Handler();
+    private Handler backgroundHandler;
+    private HandlerThread backgroundThread;
     private Runnable updateProgressRunnable;
     private int progress = 0;
     private TrackAdapter trackAdapter;
@@ -167,6 +169,10 @@ public class RecordActivity extends AppCompatActivity {
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {}
         });
+
+        backgroundThread = new HandlerThread("BackgroundThread");
+        backgroundThread.start();
+        backgroundHandler = new Handler(backgroundThread.getLooper());
     }
 
     @Override
@@ -194,24 +200,41 @@ public class RecordActivity extends AppCompatActivity {
     private void startRecording() {
         stopAllTracks(); // Остановить все предыдущие проигрывания
 
-        // Запуск всех дорожек для проигрывания во время записи
-        for (Track track : trackList) {
-            if (!track.isMuted()) {
-                MediaPlayer mediaPlayer = new MediaPlayer();
-                try {
-                    mediaPlayer.setDataSource(track.getFilePath());
-                    mediaPlayer.prepare();
-                    mediaPlayer.start();
-                    mediaPlayers.add(mediaPlayer);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    Log.e("RecordActivity", "Error playing track: " + track.getTrackName(), e);
-                }
-            }
-        }
-
         // Начало записи новой дорожки
-        new RecordTask().execute();
+        backgroundHandler.post(() -> {
+            String trackId = UUID.randomUUID().toString();
+            fileName = getExternalCacheDir().getAbsolutePath() + "/audiorecordtest_" + trackId + ".m4a";
+            mediaRecorder = new MediaRecorder();
+            mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+            mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+            mediaRecorder.setOutputFile(fileName);
+            mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+            mediaRecorder.setAudioSamplingRate(44100);
+            mediaRecorder.setAudioEncodingBitRate(192000);
+
+            try {
+                mediaRecorder.prepare();
+                mediaRecorder.start();
+                mainHandler.post(() -> {
+                    progressBar.setVisibility(View.VISIBLE);
+                    progress = 0;
+                    updateProgressRunnable = new Runnable() {
+                        @Override
+                        public void run() {
+                            progress += 1;
+                            if (progress > 100) {
+                                progress = 0;
+                            }
+                            progressBar.setProgress(progress);
+                            mainHandler.postDelayed(this, 100);
+                        }
+                    };
+                    mainHandler.post(updateProgressRunnable);
+                });
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     private void stopRecording() {
@@ -229,9 +252,11 @@ public class RecordActivity extends AppCompatActivity {
             String trackId = UUID.randomUUID().toString();
             String trackName = "Track " + trackCounter++; // Установка имени дорожки
             trackList.add(new Track(fileName, trackId, trackName));
-            trackAdapter.notifyItemInserted(trackList.size() - 1);
-            progressBar.setVisibility(View.INVISIBLE);
-            handler.removeCallbacks(updateProgressRunnable);
+            mainHandler.post(() -> {
+                trackAdapter.notifyItemInserted(trackList.size() - 1);
+                progressBar.setVisibility(View.INVISIBLE);
+                mainHandler.removeCallbacks(updateProgressRunnable);
+            });
 
             // Log the file path and trackList size
             Log.d("RecordActivity", "Recorded file: " + fileName);
@@ -252,25 +277,35 @@ public class RecordActivity extends AppCompatActivity {
         longestTrackDuration = 0;
         for (Track track : trackList) {
             if (!track.isMuted()) {
-                MediaPlayer mediaPlayer = new MediaPlayer();
-                try {
-                    mediaPlayer.setDataSource(track.getFilePath());
-                    mediaPlayer.prepare();
-                    int duration = mediaPlayer.getDuration();
-                    if (duration > longestTrackDuration) {
-                        longestTrackDuration = duration;
+                backgroundHandler.post(() -> {
+                    MediaPlayer mediaPlayer = new MediaPlayer();
+                    try {
+                        mediaPlayer.setDataSource(track.getFilePath());
+                        mediaPlayer.prepare();
+                        int duration = mediaPlayer.getDuration();
+                        if (duration > longestTrackDuration) {
+                            longestTrackDuration = duration;
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        Log.e("RecordActivity", "Error preparing track: " + track.getTrackName(), e);
                     }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    Log.e("RecordActivity", "Error preparing track: " + track.getTrackName(), e);
-                }
+                });
             }
         }
 
-        // Запуск всех дорожек для проигрывания
-        for (int i = 0; i < trackList.size(); i++) {
-            final Track track = trackList.get(i);
-            if (!track.isMuted()) {
+        // Запуск всех дорожек для проигрывания по порядку
+        playNextTrack(0);
+    }
+
+    private void playNextTrack(int index) {
+        if (index >= trackList.size()) {
+            return;
+        }
+
+        final Track track = trackList.get(index);
+        if (!track.isMuted()) {
+            backgroundHandler.post(() -> {
                 MediaPlayer mediaPlayer = new MediaPlayer();
                 try {
                     mediaPlayer.setDataSource(track.getFilePath());
@@ -278,23 +313,23 @@ public class RecordActivity extends AppCompatActivity {
                     mediaPlayer.start();
                     mediaPlayers.add(mediaPlayer);
                     track.setPlaying(true);
-                    trackAdapter.notifyItemChanged(i);
+                    mainHandler.post(() -> trackAdapter.notifyItemChanged(index));
                     Log.d("RecordActivity", "Playing track: " + track.getTrackName());
 
                     // Обновление прогресса проигрывания
-                    final int finalI = i;
                     mediaPlayer.setOnCompletionListener(mp -> {
                         track.setPlaying(false);
-                        trackAdapter.notifyItemChanged(finalI);
+                        mainHandler.post(() -> trackAdapter.notifyItemChanged(index));
+                        playNextTrack(index + 1); // Переход к следующей дорожке
                     });
 
-                    handler.post(new Runnable() {
+                    mainHandler.post(new Runnable() {
                         @Override
                         public void run() {
                             if (mediaPlayer.isPlaying()) {
                                 int progress = (int) ((mediaPlayer.getCurrentPosition() / (float) longestTrackDuration) * 100);
-                                seekBar.setProgress(progress);
-                                handler.postDelayed(this, 100);
+                                mainHandler.post(() -> seekBar.setProgress(progress));
+                                mainHandler.postDelayed(this, 100);
                             }
                         }
                     });
@@ -303,7 +338,9 @@ public class RecordActivity extends AppCompatActivity {
                     e.printStackTrace();
                     Log.e("RecordActivity", "Error playing track: " + track.getTrackName(), e);
                 }
-            }
+            });
+        } else {
+            playNextTrack(index + 1); // Переход к следующей дорожке, если текущая замучена
         }
     }
 
@@ -317,7 +354,7 @@ public class RecordActivity extends AppCompatActivity {
         for (Track track : trackList) {
             track.setPlaying(false);
         }
-        trackAdapter.notifyDataSetChanged();
+        mainHandler.post(() -> trackAdapter.notifyDataSetChanged());
         Log.d("RecordActivity", "All tracks stopped and released.");
     }
 
@@ -400,53 +437,12 @@ public class RecordActivity extends AppCompatActivity {
             mediaRecorder.release();
             mediaRecorder = null;
         }
+        backgroundThread.quitSafely();
     }
 
     @Override
     public boolean onSupportNavigateUp() {
         onBackPressed();
         return true;
-    }
-
-    private class RecordTask extends AsyncTask<Void, Void, Void> {
-        @Override
-        protected Void doInBackground(Void... voids) {
-            String trackId = UUID.randomUUID().toString();
-            fileName = getExternalCacheDir().getAbsolutePath() + "/audiorecordtest_" + trackId + ".m4a";
-            mediaRecorder = new MediaRecorder();
-            mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-            mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
-            mediaRecorder.setOutputFile(fileName);
-            mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
-            mediaRecorder.setAudioSamplingRate(44100);
-            mediaRecorder.setAudioEncodingBitRate(192000);
-
-            try {
-                mediaRecorder.prepare();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            mediaRecorder.start();
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(Void aVoid) {
-            progressBar.setVisibility(View.VISIBLE);
-            progress = 0;
-            updateProgressRunnable = new Runnable() {
-                @Override
-                public void run() {
-                    progress += 1;
-                    if (progress > 100) {
-                        progress = 0;
-                    }
-                    progressBar.setProgress(progress);
-                    handler.postDelayed(this, 100);
-                }
-            };
-            handler.post(updateProgressRunnable);
-        }
     }
 }
