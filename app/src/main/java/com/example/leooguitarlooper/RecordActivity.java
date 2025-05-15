@@ -250,7 +250,7 @@ public class RecordActivity extends AppCompatActivity {
             mediaRecorder.release();
             mediaRecorder = null;
             String trackId = UUID.randomUUID().toString();
-            String trackName = "Track " + trackCounter++; // Установка имени дорожки
+            String trackName = "Дорожка " + trackCounter++; // Установка имени дорожки
             trackList.add(new Track(fileName, trackId, trackName));
             mainHandler.post(() -> {
                 trackAdapter.notifyItemInserted(trackList.size() - 1);
