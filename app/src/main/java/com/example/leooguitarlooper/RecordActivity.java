@@ -192,14 +192,87 @@ public class RecordActivity extends AppCompatActivity {
 
             public void onFinish() {
                 tvCountdown.setText("Запись идет...");
-                startRecording();
+                playAllTracksAndStartRecording();
             }
         }.start();
     }
 
-    private void startRecording() {
+    private void playAllTracksAndStartRecording() {
         stopAllTracks(); // Остановить все предыдущие проигрывания
 
+        // Определение длины самой длинной дорожки
+        longestTrackDuration = 0;
+        for (Track track : trackList) {
+            if (!track.isMuted()) {
+                backgroundHandler.post(() -> {
+                    MediaPlayer mediaPlayer = new MediaPlayer();
+                    try {
+                        mediaPlayer.setDataSource(track.getFilePath());
+                        mediaPlayer.prepare();
+                        int duration = mediaPlayer.getDuration();
+                        if (duration > longestTrackDuration) {
+                            longestTrackDuration = duration;
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        Log.e("RecordActivity", "Error preparing track: " + track.getTrackName(), e);
+                    }
+                });
+            }
+        }
+
+        // Запуск всех дорожек для проигрывания по порядку
+        playNextTrack(0, true);
+    }
+
+    private void playNextTrack(int index, boolean startRecordingAfter) {
+        if (index >= trackList.size()) {
+            if (startRecordingAfter) {
+                startRecording();
+            }
+            return;
+        }
+
+        final Track track = trackList.get(index);
+        if (!track.isMuted()) {
+            MediaPlayer mediaPlayer = new MediaPlayer();
+            try {
+                mediaPlayer.setDataSource(track.getFilePath());
+                mediaPlayer.prepare();
+                mediaPlayer.start();
+                mediaPlayers.add(mediaPlayer);
+                track.setPlaying(true);
+                mainHandler.post(() -> trackAdapter.notifyItemChanged(index));
+                Log.d("RecordActivity", "Playing track: " + track.getTrackName());
+
+                // Обновление прогресса проигрывания
+                mediaPlayer.setOnCompletionListener(mp -> {
+                    track.setPlaying(false);
+                    mainHandler.post(() -> trackAdapter.notifyItemChanged(index));
+                    playNextTrack(index + 1, startRecordingAfter); // Переход к следующей дорожке
+                });
+
+                mainHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (mediaPlayer.isPlaying()) {
+                            int progress = (int) ((mediaPlayer.getCurrentPosition() / (float) longestTrackDuration) * 100);
+                            mainHandler.post(() -> seekBar.setProgress(progress));
+                            mainHandler.postDelayed(this, 100);
+                        }
+                    }
+                });
+
+            } catch (IOException e) {
+                e.printStackTrace();
+                Log.e("RecordActivity", "Error playing track: " + track.getTrackName(), e);
+            }
+        } else {
+            playNextTrack(index + 1, startRecordingAfter); // Переход к следующей дорожке, если текущая замучена
+        }
+    }
+
+    private void startRecording() {
         // Начало записи новой дорожки
         backgroundHandler.post(() -> {
             String trackId = UUID.randomUUID().toString();
@@ -250,7 +323,7 @@ public class RecordActivity extends AppCompatActivity {
             mediaRecorder.release();
             mediaRecorder = null;
             String trackId = UUID.randomUUID().toString();
-            String trackName = "Дорожка " + trackCounter++; // Установка имени дорожки
+            String trackName = "Track " + trackCounter++; // Установка имени дорожки
             trackList.add(new Track(fileName, trackId, trackName));
             mainHandler.post(() -> {
                 trackAdapter.notifyItemInserted(trackList.size() - 1);
@@ -295,53 +368,7 @@ public class RecordActivity extends AppCompatActivity {
         }
 
         // Запуск всех дорожек для проигрывания по порядку
-        playNextTrack(0);
-    }
-
-    private void playNextTrack(int index) {
-        if (index >= trackList.size()) {
-            return;
-        }
-
-        final Track track = trackList.get(index);
-        if (!track.isMuted()) {
-            backgroundHandler.post(() -> {
-                MediaPlayer mediaPlayer = new MediaPlayer();
-                try {
-                    mediaPlayer.setDataSource(track.getFilePath());
-                    mediaPlayer.prepare();
-                    mediaPlayer.start();
-                    mediaPlayers.add(mediaPlayer);
-                    track.setPlaying(true);
-                    mainHandler.post(() -> trackAdapter.notifyItemChanged(index));
-                    Log.d("RecordActivity", "Playing track: " + track.getTrackName());
-
-                    // Обновление прогресса проигрывания
-                    mediaPlayer.setOnCompletionListener(mp -> {
-                        track.setPlaying(false);
-                        mainHandler.post(() -> trackAdapter.notifyItemChanged(index));
-                        playNextTrack(index + 1); // Переход к следующей дорожке
-                    });
-
-                    mainHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (mediaPlayer.isPlaying()) {
-                                int progress = (int) ((mediaPlayer.getCurrentPosition() / (float) longestTrackDuration) * 100);
-                                mainHandler.post(() -> seekBar.setProgress(progress));
-                                mainHandler.postDelayed(this, 100);
-                            }
-                        }
-                    });
-
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    Log.e("RecordActivity", "Error playing track: " + track.getTrackName(), e);
-                }
-            });
-        } else {
-            playNextTrack(index + 1); // Переход к следующей дорожке, если текущая замучена
-        }
+        playNextTrack(0, false);
     }
 
     private void stopAllTracks() {
