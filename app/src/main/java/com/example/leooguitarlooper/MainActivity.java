@@ -11,6 +11,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.ViewCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -35,6 +36,13 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        View rootView = findViewById(android.R.id.content);
+        ViewCompat.setOnApplyWindowInsetsListener(rootView, (v, insets) -> {
+            int topInset = insets.getSystemWindowInsetTop();
+            v.setPadding(0, topInset, 0, 0);
+            return insets.consumeSystemWindowInsets();
+        });
 
         sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         loadProjects();

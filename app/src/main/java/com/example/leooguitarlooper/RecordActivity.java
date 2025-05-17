@@ -62,6 +62,7 @@ public class RecordActivity extends AppCompatActivity {
     private boolean isRecording = false; // Флаг для отслеживания состояния записи
     // Флаг для отслеживания состояния проигрывания
 
+    /** @noinspection deprecation*/
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -314,6 +315,7 @@ public class RecordActivity extends AppCompatActivity {
         });
     }
 
+    /** @noinspection ResultOfMethodCallIgnored*/
     private void stopRecording() {
         if (countDownTimer != null) {
             countDownTimer.cancel();
@@ -327,7 +329,7 @@ public class RecordActivity extends AppCompatActivity {
                 mediaRecorder.stop();
                 mediaRecorder.release();
                 mediaRecorder = null;
-                String trackId = UUID.randomUUID().toString();
+                UUID.randomUUID().toString();
                 String trackName = "Track " + currentProject.getTrackCounter(); // Установка имени дорожки
                 currentProject.incrementTrackCounter(); // Увеличение счетчика дорожек
                 trackList.add(new Track(fileName, trackName));
