@@ -16,12 +16,61 @@ public class ProjectAdapter extends RecyclerView.Adapter<ProjectAdapter.ProjectV
 
     public interface OnItemClickListener {
         void onItemClick(int position);
-        void onRenameClick(int position);
         void onDeleteClick(int position);
+        void onRenameClick(int position);
     }
 
     public void setOnItemClickListener(OnItemClickListener listener) {
         this.listener = listener;
+    }
+
+    public static class ProjectViewHolder extends RecyclerView.ViewHolder {
+        public TextView tvProjectName;
+        public Button btnDelete;
+        public Button btnRename;
+
+        public ProjectViewHolder(View itemView, final OnItemClickListener listener) {
+            super(itemView);
+            tvProjectName = itemView.findViewById(R.id.tv_project_name);
+            btnDelete = itemView.findViewById(R.id.btn_delete);
+            btnRename = itemView.findViewById(R.id.btn_rename);
+
+            itemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (listener != null) {
+                        int position = getAdapterPosition();
+                        if (position != RecyclerView.NO_POSITION) {
+                            listener.onItemClick(position);
+                        }
+                    }
+                }
+            });
+
+            btnDelete.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (listener != null) {
+                        int position = getAdapterPosition();
+                        if (position != RecyclerView.NO_POSITION) {
+                            listener.onDeleteClick(position);
+                        }
+                    }
+                }
+            });
+
+            btnRename.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (listener != null) {
+                        int position = getAdapterPosition();
+                        if (position != RecyclerView.NO_POSITION) {
+                            listener.onRenameClick(position);
+                        }
+                    }
+                }
+            });
+        }
     }
 
     public ProjectAdapter(List<Project> projectList) {
@@ -31,49 +80,18 @@ public class ProjectAdapter extends RecyclerView.Adapter<ProjectAdapter.ProjectV
     @NonNull
     @Override
     public ProjectViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_project, parent, false);
-        return new ProjectViewHolder(view);
+        View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_project, parent, false);
+        return new ProjectViewHolder(v, listener);
     }
 
     @Override
     public void onBindViewHolder(@NonNull ProjectViewHolder holder, int position) {
         Project project = projectList.get(position);
-        holder.tvProjectName.setText(project.getName());
-
-        holder.itemView.setOnClickListener(v -> {
-            if (listener != null) {
-                listener.onItemClick(position);
-            }
-        });
-
-        holder.btnRename.setOnClickListener(v -> {
-            if (listener != null) {
-                listener.onRenameClick(position);
-            }
-        });
-
-        holder.btnDelete.setOnClickListener(v -> {
-            if (listener != null) {
-                listener.onDeleteClick(position);
-            }
-        });
+        holder.tvProjectName.setText(project.getProjectName());
     }
 
     @Override
     public int getItemCount() {
         return projectList.size();
-    }
-
-    static class ProjectViewHolder extends RecyclerView.ViewHolder {
-        TextView tvProjectName;
-        Button btnRename;
-        Button btnDelete;
-
-        public ProjectViewHolder(@NonNull View itemView) {
-            super(itemView);
-            tvProjectName = itemView.findViewById(R.id.tv_project_name);
-            btnRename = itemView.findViewById(R.id.btn_rename);
-            btnDelete = itemView.findViewById(R.id.btn_delete);
-        }
     }
 }

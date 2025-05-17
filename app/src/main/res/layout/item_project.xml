@@ -3,37 +3,30 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:padding="16dp"
-    android:gravity="center_vertical"
-    android:layout_marginBottom="8dp">
+    android:padding="16dp">
 
     <TextView
         android:id="@+id/tv_project_name"
-        android:layout_width="202dp"
-        android:layout_height="37dp"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:paddingStart="8dp"
         android:text="Project Name"
         android:textColor="@color/colorText"
         android:textSize="18sp" />
 
     <Button
-        android:id="@+id/btn_rename"
-        android:layout_width="104dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:backgroundTint="@color/colorAccent2"
-        android:text="Изменить"
-        android:textColor="@color/colorText"
-        android:textSize="11sp" />
-
-    <Button
         android:id="@+id/btn_delete"
-        android:layout_width="93dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:backgroundTint="@color/colorAccent2"
         android:text="Удалить"
         android:textColor="@color/colorText"
-        android:textSize="11sp" />
+        android:backgroundTint="@color/colorAccent2"/>
+
+    <Button
+        android:id="@+id/btn_rename"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Изменить"
+        android:textColor="@color/colorText"
+        android:backgroundTint="@color/colorAccent2"/>
 </LinearLayout>

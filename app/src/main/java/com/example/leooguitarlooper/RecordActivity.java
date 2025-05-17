@@ -59,8 +59,7 @@ public class RecordActivity extends AppCompatActivity {
     private ImageButton btnStartRecording;
     private ImageButton btnStopRecording;
     private CountDownTimer countDownTimer;
-    private int trackCounter = 1; // Добавлено для хранения текущего номера дорожки
-    private int longestTrackDuration = 0; // Длина самой длинной дорожки
+    private Project currentProject; // Добавлено для хранения текущего проекта
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,7 +70,7 @@ public class RecordActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setDisplayShowHomeEnabled(true);
-        getSupportActionBar().setTitle("Назад к проекту"); // Установка заголовка Toolbar
+        getSupportActionBar().setTitle("Назад к проектам"); // Установка заголовка Toolbar
 
         projectId = getIntent().getStringExtra("project_id");
         projectName = getIntent().getStringExtra("project_name");
@@ -201,31 +200,34 @@ public class RecordActivity extends AppCompatActivity {
         stopAllTracks(); // Остановить все предыдущие проигрывания
 
         // Определение длины самой длинной дорожки
-        longestTrackDuration = 0;
-        for (Track track : trackList) {
-            if (!track.isMuted()) {
-                backgroundHandler.post(() -> {
-                    MediaPlayer mediaPlayer = new MediaPlayer();
-                    try {
-                        mediaPlayer.setDataSource(track.getFilePath());
-                        mediaPlayer.prepare();
-                        int duration = mediaPlayer.getDuration();
-                        if (duration > longestTrackDuration) {
-                            longestTrackDuration = duration;
-                        }
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        Log.e("RecordActivity", "Error preparing track: " + track.getTrackName(), e);
-                    }
-                });
-            }
-        }
+        final int longestTrackDuration = getLongestTrackDuration();
 
         // Запуск всех дорожек для проигрывания по порядку
-        playNextTrack(0, true);
+        playNextTrack(0, true, longestTrackDuration);
     }
 
-    private void playNextTrack(int index, boolean startRecordingAfter) {
+    private int getLongestTrackDuration() {
+        int longestTrackDuration = 0;
+        for (Track track : trackList) {
+            if (!track.isMuted()) {
+                MediaPlayer mediaPlayer = new MediaPlayer();
+                try {
+                    mediaPlayer.setDataSource(track.getFilePath());
+                    mediaPlayer.prepare();
+                    int duration = mediaPlayer.getDuration();
+                    if (duration > longestTrackDuration) {
+                        longestTrackDuration = duration;
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    Log.e("RecordActivity", "Error preparing track: " + track.getTrackName(), e);
+                }
+            }
+        }
+        return longestTrackDuration;
+    }
+
+    private void playNextTrack(int index, boolean startRecordingAfter, int longestTrackDuration) {
         if (index >= trackList.size()) {
             if (startRecordingAfter) {
                 startRecording();
@@ -249,7 +251,7 @@ public class RecordActivity extends AppCompatActivity {
                 mediaPlayer.setOnCompletionListener(mp -> {
                     track.setPlaying(false);
                     mainHandler.post(() -> trackAdapter.notifyItemChanged(index));
-                    playNextTrack(index + 1, startRecordingAfter); // Переход к следующей дорожке
+                    playNextTrack(index + 1, startRecordingAfter, longestTrackDuration); // Переход к следующей дорожке
                 });
 
                 mainHandler.post(new Runnable() {
@@ -268,7 +270,7 @@ public class RecordActivity extends AppCompatActivity {
                 Log.e("RecordActivity", "Error playing track: " + track.getTrackName(), e);
             }
         } else {
-            playNextTrack(index + 1, startRecordingAfter); // Переход к следующей дорожке, если текущая замучена
+            playNextTrack(index + 1, startRecordingAfter, longestTrackDuration); // Переход к следующей дорожке, если текущая замучена
         }
     }
 
@@ -323,7 +325,8 @@ public class RecordActivity extends AppCompatActivity {
             mediaRecorder.release();
             mediaRecorder = null;
             String trackId = UUID.randomUUID().toString();
-            String trackName = "Track " + trackCounter++; // Установка имени дорожки
+            String trackName = "Дорожка" + currentProject.getTrackCounter(); // Установка имени дорожки
+            currentProject.incrementTrackCounter(); // Увеличение счетчика дорожек
             trackList.add(new Track(fileName, trackId, trackName));
             mainHandler.post(() -> {
                 trackAdapter.notifyItemInserted(trackList.size() - 1);
@@ -347,28 +350,10 @@ public class RecordActivity extends AppCompatActivity {
         stopAllTracks(); // Остановить все предыдущие проигрывания
 
         // Определение длины самой длинной дорожки
-        longestTrackDuration = 0;
-        for (Track track : trackList) {
-            if (!track.isMuted()) {
-                backgroundHandler.post(() -> {
-                    MediaPlayer mediaPlayer = new MediaPlayer();
-                    try {
-                        mediaPlayer.setDataSource(track.getFilePath());
-                        mediaPlayer.prepare();
-                        int duration = mediaPlayer.getDuration();
-                        if (duration > longestTrackDuration) {
-                            longestTrackDuration = duration;
-                        }
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        Log.e("RecordActivity", "Error preparing track: " + track.getTrackName(), e);
-                    }
-                });
-            }
-        }
+        final int longestTrackDuration = getLongestTrackDuration();
 
         // Запуск всех дорожек для проигрывания по порядку
-        playNextTrack(0, false);
+        playNextTrack(0, false, longestTrackDuration);
     }
 
     private void stopAllTracks() {
@@ -399,6 +384,7 @@ public class RecordActivity extends AppCompatActivity {
 
         for (Project project : projectList) {
             if (project.getProjectId().equals(projectId)) {
+                currentProject = project;
                 trackList = project.getTracks();
                 Log.d("RecordActivity", "Project loaded with " + trackList.size() + " tracks.");
                 return;
@@ -422,6 +408,7 @@ public class RecordActivity extends AppCompatActivity {
         for (Project project : projectList) {
             if (project.getProjectId().equals(projectId)) {
                 project.setTracks(trackList);
+                project.setTrackCounter(currentProject.getTrackCounter()); // Сохранение текущего номера дорожки
                 Log.d("RecordActivity", "Project saved with " + trackList.size() + " tracks.");
                 break;
             }
@@ -435,7 +422,7 @@ public class RecordActivity extends AppCompatActivity {
 
     private void showRenameTrackDialog(int position) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Rename Track");
+        builder.setTitle("Переименовать");
 
         final EditText input = new EditText(this);
         input.setText(trackList.get(position).getTrackName());
@@ -450,7 +437,7 @@ public class RecordActivity extends AppCompatActivity {
             }
         });
 
-        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
+        builder.setNegativeButton("Отмена", (dialog, which) -> dialog.cancel());
 
         builder.show();
     }

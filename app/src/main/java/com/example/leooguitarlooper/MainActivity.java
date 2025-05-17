@@ -3,12 +3,14 @@ package com.example.leooguitarlooper;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -21,9 +23,8 @@ import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
 
-    private RecyclerView recyclerView;
+    private List<Project> projectList = new ArrayList<>();
     private ProjectAdapter projectAdapter;
-    private List<Project> projectList;
     private SharedPreferences sharedPreferences;
     private static final String PREFS_NAME = "ProjectPrefs";
     private static final String PROJECTS_KEY = "Projects";
@@ -38,82 +39,99 @@ public class MainActivity extends AppCompatActivity {
         sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         loadProjects();
 
-        recyclerView = findViewById(R.id.recycler_view);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
-
-        projectAdapter = new ProjectAdapter(projectList);
-        recyclerView.setAdapter(projectAdapter);
-
         tvNoProjects = findViewById(R.id.tv_no_projects);
         ivArrow = findViewById(R.id.iv_arrow);
-        updateNoProjectsVisibility();
+
+        RecyclerView recyclerView = findViewById(R.id.recycler_view);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        projectAdapter = new ProjectAdapter(projectList);
+        recyclerView.setAdapter(projectAdapter);
 
         projectAdapter.setOnItemClickListener(new ProjectAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(int position) {
-                Intent intent = new Intent(MainActivity.this, RecordActivity.class);
-                intent.putExtra("project_id", projectList.get(position).getProjectId());
-                intent.putExtra("project_name", projectList.get(position).getName()); // Передача имени проекта
-                startActivity(intent);
-            }
-
-            @Override
-            public void onRenameClick(int position) {
-                showRenameProjectDialog(position);
+                if (position >= 0 && position < projectList.size()) {
+                    Project project = projectList.get(position);
+                    Intent intent = new Intent(MainActivity.this, RecordActivity.class);
+                    intent.putExtra("project_id", project.getProjectId());
+                    intent.putExtra("project_name", project.getProjectName());
+                    startActivity(intent);
+                }
             }
 
             @Override
             public void onDeleteClick(int position) {
-                projectList.remove(position);
-                projectAdapter.notifyItemRemoved(position);
-                saveProjects();
-                updateNoProjectsVisibility();
+                if (position >= 0 && position < projectList.size()) {
+                    projectList.remove(position);
+                    projectAdapter.notifyItemRemoved(position);
+                    saveProjects();
+                    updateNoProjectsView();
+                } else {
+                    Log.e("MainActivity", "Invalid position for deletion: " + position);
+                }
+            }
+
+            @Override
+            public void onRenameClick(int position) {
+                if (position >= 0 && position < projectList.size()) {
+                    showRenameProjectDialog(position);
+                }
             }
         });
 
-        FloatingActionButton fabAddProject = findViewById(R.id.fab_add_project);
-        fabAddProject.setOnClickListener(new View.OnClickListener() {
+        FloatingActionButton fab = findViewById(R.id.fab_add_project);
+        fab.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v) {
-                showAddProjectDialog();
+            public void onClick(View view) {
+                showCreateProjectDialog();
             }
         });
+
+        updateNoProjectsView();
     }
 
     private void loadProjects() {
         Gson gson = new Gson();
         String json = sharedPreferences.getString(PROJECTS_KEY, null);
         Type type = new TypeToken<ArrayList<Project>>() {}.getType();
-        projectList = gson.fromJson(json, type);
+        List<Project> loadedProjects = gson.fromJson(json, type);
 
-        if (projectList == null) {
-            projectList = new ArrayList<>();
+        if (loadedProjects != null) {
+            projectList.clear();
+            projectList.addAll(loadedProjects);
+            if (projectAdapter != null) {
+                projectAdapter.notifyDataSetChanged();
+            }
         }
     }
 
     private void saveProjects() {
-        SharedPreferences.Editor editor = sharedPreferences.edit();
         Gson gson = new Gson();
         String json = gson.toJson(projectList);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
         editor.putString(PROJECTS_KEY, json);
         editor.apply();
     }
 
-    private void showAddProjectDialog() {
+    private void showCreateProjectDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Новый проект");
+        builder.setTitle("Создайте проект");
 
         final EditText input = new EditText(this);
+        input.setHint("Project Name");
         builder.setView(input);
 
         builder.setPositiveButton("OK", (dialog, which) -> {
             String projectName = input.getText().toString();
             if (!projectName.isEmpty()) {
                 String projectId = UUID.randomUUID().toString();
-                projectList.add(new Project(projectName, projectId));
-                projectAdapter.notifyItemInserted(projectList.size() - 1);
+                Project newProject = new Project(projectId, projectName);
+                projectList.add(newProject);
+                if (projectAdapter != null) {
+                    projectAdapter.notifyItemInserted(projectList.size() - 1);
+                }
                 saveProjects();
-                updateNoProjectsVisibility();
+                updateNoProjectsView();
             }
         });
 
@@ -124,17 +142,19 @@ public class MainActivity extends AppCompatActivity {
 
     private void showRenameProjectDialog(int position) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Переменовать");
+        builder.setTitle("Переименовать");
 
         final EditText input = new EditText(this);
-        input.setText(projectList.get(position).getName());
+        input.setText(projectList.get(position).getProjectName());
         builder.setView(input);
 
         builder.setPositiveButton("OK", (dialog, which) -> {
-            String projectName = input.getText().toString();
-            if (!projectName.isEmpty()) {
-                projectList.get(position).setName(projectName);
-                projectAdapter.notifyItemChanged(position);
+            String newProjectName = input.getText().toString();
+            if (!newProjectName.isEmpty()) {
+                projectList.get(position).setProjectName(newProjectName);
+                if (projectAdapter != null) {
+                    projectAdapter.notifyItemChanged(position);
+                }
                 saveProjects();
             }
         });
@@ -144,7 +164,7 @@ public class MainActivity extends AppCompatActivity {
         builder.show();
     }
 
-    private void updateNoProjectsVisibility() {
+    private void updateNoProjectsView() {
         if (projectList.isEmpty()) {
             tvNoProjects.setVisibility(View.VISIBLE);
             ivArrow.setVisibility(View.VISIBLE);
