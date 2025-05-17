@@ -22,6 +22,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
+import androidx.core.view.ViewCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.gson.Gson;
@@ -65,6 +66,13 @@ public class RecordActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_record);
+
+        View rootView = findViewById(android.R.id.content);
+        ViewCompat.setOnApplyWindowInsetsListener(rootView, (v, insets) -> {
+            int topInset = insets.getSystemWindowInsetTop();
+            v.setPadding(0, topInset, 0, 0);
+            return insets.consumeSystemWindowInsets();
+        });
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -322,7 +330,7 @@ public class RecordActivity extends AppCompatActivity {
                 String trackId = UUID.randomUUID().toString();
                 String trackName = "Track " + currentProject.getTrackCounter(); // Установка имени дорожки
                 currentProject.incrementTrackCounter(); // Увеличение счетчика дорожек
-                trackList.add(new Track(fileName, trackId, trackName));
+                trackList.add(new Track(fileName, trackName));
                 mainHandler.post(() -> {
                     trackAdapter.notifyItemInserted(trackList.size() - 1);
                     progressBar.setVisibility(View.INVISIBLE);

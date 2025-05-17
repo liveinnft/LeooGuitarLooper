@@ -2,14 +2,12 @@ package com.example.leooguitarlooper;
 
 public class Track {
     private final String filePath;
-    private final String trackId;
     private String trackName;
     private boolean isMuted;
     private boolean isPlaying;
 
-    public Track(String filePath, String trackId, String trackName) {
+    public Track(String filePath, String trackName) {
         this.filePath = filePath;
-        this.trackId = trackId;
         this.trackName = trackName;
         this.isMuted = false;
         this.isPlaying = false;
