@@ -13,7 +13,7 @@ import java.util.List;
 
 public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHolder> {
 
-    private List<Track> trackList;
+    private final List<Track> trackList;
     private OnItemClickListener listener;
 
     public interface OnItemClickListener {
@@ -30,6 +30,7 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
         this.trackList = trackList;
     }
 
+    /** @noinspection ClassEscapesDefinedScope*/
     @NonNull
     @Override
     public TrackViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -37,6 +38,7 @@ public class TrackAdapter extends RecyclerView.Adapter<TrackAdapter.TrackViewHol
         return new TrackViewHolder(view);
     }
 
+    /** @noinspection ClassEscapesDefinedScope*/
     @Override
     public void onBindViewHolder(@NonNull TrackViewHolder holder, int position) {
         Track track = trackList.get(position);

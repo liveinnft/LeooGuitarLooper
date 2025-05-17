@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Project {
-    private String projectId;
+    private final String projectId;
     private String projectName;
     private List<Track> tracks;
     private int trackCounter; // Добавлено для хранения текущего номера дорожки
@@ -18,10 +18,6 @@ public class Project {
 
     public String getProjectId() {
         return projectId;
-    }
-
-    public void setProjectId(String projectId) {
-        this.projectId = projectId;
     }
 
     public String getProjectName() {

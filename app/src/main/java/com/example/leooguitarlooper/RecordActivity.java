@@ -1,6 +1,7 @@
 package com.example.leooguitarlooper;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.media.MediaPlayer;
@@ -29,38 +30,36 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
-
 
 public class RecordActivity extends AppCompatActivity {
 
     private static final int REQUEST_RECORD_AUDIO_PERMISSION = 200;
     private MediaRecorder mediaRecorder;
-    private List<MediaPlayer> mediaPlayers = new ArrayList<>();
+    private final List<MediaPlayer> mediaPlayers = new ArrayList<>();
     private String fileName;
     private boolean permissionToRecordAccepted = false;
-    private String[] permissions = {Manifest.permission.RECORD_AUDIO, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE};
+    private final String[] permissions = {Manifest.permission.RECORD_AUDIO, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE};
     private List<Track> trackList = new ArrayList<>();
     private ProgressBar progressBar;
     private SeekBar seekBar;
-    private Handler mainHandler = new Handler();
+    private final Handler mainHandler = new Handler();
     private Handler backgroundHandler;
     private HandlerThread backgroundThread;
     private Runnable updateProgressRunnable;
     private int progress = 0;
     private TrackAdapter trackAdapter;
-    private int currentTrackIndex = 0;
     private SharedPreferences sharedPreferences;
     private static final String PREFS_NAME = "ProjectPrefs";
     private static final String PROJECTS_KEY = "Projects";
     private String projectId;
-    private String projectName;
-    private TextView tvProjectName;
     private TextView tvCountdown;
     private ImageButton btnStartRecording;
-    private ImageButton btnStopRecording;
     private CountDownTimer countDownTimer;
     private Project currentProject; // Добавлено для хранения текущего проекта
+    private boolean isRecording = false; // Флаг для отслеживания состояния записи
+    // Флаг для отслеживания состояния проигрывания
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,14 +68,14 @@ public class RecordActivity extends AppCompatActivity {
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        Objects.requireNonNull(getSupportActionBar()).setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setDisplayShowHomeEnabled(true);
-        getSupportActionBar().setTitle("Назад к проектам"); // Установка заголовка Toolbar
+        getSupportActionBar().setTitle("Назад к проекту"); // Установка заголовка Toolbar
 
         projectId = getIntent().getStringExtra("project_id");
-        projectName = getIntent().getStringExtra("project_name");
+        String projectName = getIntent().getStringExtra("project_name");
 
-        tvProjectName = findViewById(R.id.tv_project_name);
+        TextView tvProjectName = findViewById(R.id.tv_project_name);
         tvProjectName.setText(projectName);
 
         tvCountdown = findViewById(R.id.tv_countdown);
@@ -120,32 +119,19 @@ public class RecordActivity extends AppCompatActivity {
         });
 
         btnStartRecording = findViewById(R.id.btn_start_recording);
-        btnStartRecording.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (permissionToRecordAccepted) {
-                    startCountdown();
-                } else {
-                    ActivityCompat.requestPermissions(RecordActivity.this, permissions, REQUEST_RECORD_AUDIO_PERMISSION);
-                }
+        btnStartRecording.setOnClickListener(v -> {
+            if (permissionToRecordAccepted) {
+                startCountdown();
+            } else {
+                ActivityCompat.requestPermissions(RecordActivity.this, permissions, REQUEST_RECORD_AUDIO_PERMISSION);
             }
         });
 
-        btnStopRecording = findViewById(R.id.btn_stop_recording);
-        btnStopRecording.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                stopRecording();
-            }
-        });
+        ImageButton btnStopRecording = findViewById(R.id.btn_stop_recording);
+        btnStopRecording.setOnClickListener(v -> stopRecording());
 
         ImageButton btnPlayAll = findViewById(R.id.btn_play_all);
-        btnPlayAll.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                playAllTracks();
-            }
-        });
+        btnPlayAll.setOnClickListener(v -> playAllTracks());
 
         ActivityCompat.requestPermissions(this, permissions, REQUEST_RECORD_AUDIO_PERMISSION);
 
@@ -154,7 +140,7 @@ public class RecordActivity extends AppCompatActivity {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser) {
                     for (MediaPlayer mediaPlayer : mediaPlayers) {
-                        if (mediaPlayer != null) {
+                        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
                             int duration = mediaPlayer.getDuration();
                             int newPosition = (duration * progress) / 100;
                             mediaPlayer.seekTo(newPosition);
@@ -186,6 +172,7 @@ public class RecordActivity extends AppCompatActivity {
     private void startCountdown() {
         btnStartRecording.setEnabled(false);
         countDownTimer = new CountDownTimer(3000, 1000) {
+            @SuppressLint("SetTextI18n")
             public void onTick(long millisUntilFinished) {
                 tvCountdown.setText("Начало через: " + millisUntilFinished / 1000);
             }
@@ -207,6 +194,7 @@ public class RecordActivity extends AppCompatActivity {
         playNextTrack(0, true, longestTrackDuration);
     }
 
+    /** @noinspection CallToPrintStackTrace*/
     private int getLongestTrackDuration() {
         int longestTrackDuration = 0;
         for (Track track : trackList) {
@@ -222,12 +210,15 @@ public class RecordActivity extends AppCompatActivity {
                 } catch (IOException e) {
                     e.printStackTrace();
                     Log.e("RecordActivity", "Error preparing track: " + track.getTrackName(), e);
+                } finally {
+                    mediaPlayer.release();
                 }
             }
         }
         return longestTrackDuration;
     }
 
+    /** @noinspection CallToPrintStackTrace*/
     private void playNextTrack(int index, boolean startRecordingAfter, int longestTrackDuration) {
         if (index >= trackList.size()) {
             if (startRecordingAfter) {
@@ -275,11 +266,12 @@ public class RecordActivity extends AppCompatActivity {
         }
     }
 
+    /** @noinspection CallToPrintStackTrace*/
     private void startRecording() {
         // Начало записи новой дорожки
         backgroundHandler.post(() -> {
             String trackId = UUID.randomUUID().toString();
-            fileName = getExternalCacheDir().getAbsolutePath() + "/audiorecordtest_" + trackId + ".m4a";
+            fileName = Objects.requireNonNull(getExternalCacheDir()).getAbsolutePath() + "/audiorecordtest_" + trackId + ".m4a";
             mediaRecorder = new MediaRecorder();
             mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
             mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
@@ -291,6 +283,7 @@ public class RecordActivity extends AppCompatActivity {
             try {
                 mediaRecorder.prepare();
                 mediaRecorder.start();
+                isRecording = true; // Устанавливаем флаг записи
                 mainHandler.post(() -> {
                     progressBar.setVisibility(View.VISIBLE);
                     progress = 0;
@@ -321,27 +314,30 @@ public class RecordActivity extends AppCompatActivity {
             btnStartRecording.setEnabled(true);
         }
 
-        if (mediaRecorder != null) {
-            mediaRecorder.stop();
-            mediaRecorder.release();
-            mediaRecorder = null;
-            String trackId = UUID.randomUUID().toString();
-            String trackName = "Дорожка" + currentProject.getTrackCounter(); // Установка имени дорожки
-            currentProject.incrementTrackCounter(); // Увеличение счетчика дорожек
-            trackList.add(new Track(fileName, trackId, trackName));
-            mainHandler.post(() -> {
-                trackAdapter.notifyItemInserted(trackList.size() - 1);
-                progressBar.setVisibility(View.INVISIBLE);
-                mainHandler.removeCallbacks(updateProgressRunnable);
-            });
+        if (isRecording) {
+            if (mediaRecorder != null) {
+                mediaRecorder.stop();
+                mediaRecorder.release();
+                mediaRecorder = null;
+                String trackId = UUID.randomUUID().toString();
+                String trackName = "Track " + currentProject.getTrackCounter(); // Установка имени дорожки
+                currentProject.incrementTrackCounter(); // Увеличение счетчика дорожек
+                trackList.add(new Track(fileName, trackId, trackName));
+                mainHandler.post(() -> {
+                    trackAdapter.notifyItemInserted(trackList.size() - 1);
+                    progressBar.setVisibility(View.INVISIBLE);
+                    mainHandler.removeCallbacks(updateProgressRunnable);
+                });
 
-            // Log the file path and trackList size
-            Log.d("RecordActivity", "Recorded file: " + fileName);
-            Log.d("RecordActivity", "Track list size: " + trackList.size());
+                // Log the file path and trackList size
+                Log.d("RecordActivity", "Recorded file: " + fileName);
+                Log.d("RecordActivity", "Track list size: " + trackList.size());
 
-            saveProject();
-            tvCountdown.setText("Начните запись");
-            btnStartRecording.setEnabled(true);
+                saveProject();
+                tvCountdown.setText("Начните запись");
+                btnStartRecording.setEnabled(true);
+            }
+            isRecording = false; // Сбрасываем флаг записи
         }
 
         stopAllTracks(); // Остановить все проигрывания
@@ -357,9 +353,13 @@ public class RecordActivity extends AppCompatActivity {
         playNextTrack(0, false, longestTrackDuration);
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     private void stopAllTracks() {
         for (MediaPlayer mediaPlayer : mediaPlayers) {
             if (mediaPlayer != null) {
+                if (mediaPlayer.isPlaying()) {
+                    mediaPlayer.stop();
+                }
                 mediaPlayer.release();
             }
         }
@@ -378,7 +378,6 @@ public class RecordActivity extends AppCompatActivity {
         List<Project> projectList = gson.fromJson(json, type);
 
         if (projectList == null) {
-            projectList = new ArrayList<>();
             Log.d("RecordActivity", "No projects found in SharedPreferences.");
             return;
         }
@@ -401,7 +400,6 @@ public class RecordActivity extends AppCompatActivity {
         List<Project> projectList = gson.fromJson(json, type);
 
         if (projectList == null) {
-            projectList = new ArrayList<>();
             Log.d("RecordActivity", "No projects found in SharedPreferences to save.");
             return;
         }
@@ -423,7 +421,7 @@ public class RecordActivity extends AppCompatActivity {
 
     private void showRenameTrackDialog(int position) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Переименовать");
+        builder.setTitle("Rename Track");
 
         final EditText input = new EditText(this);
         input.setText(trackList.get(position).getTrackName());
@@ -438,7 +436,7 @@ public class RecordActivity extends AppCompatActivity {
             }
         });
 
-        builder.setNegativeButton("Отмена", (dialog, which) -> dialog.cancel());
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
 
         builder.show();
     }
@@ -455,6 +453,7 @@ public class RecordActivity extends AppCompatActivity {
         backgroundThread.quitSafely();
     }
 
+    /** @noinspection deprecation*/
     @Override
     public boolean onSupportNavigateUp() {
         onBackPressed();

@@ -1,5 +1,6 @@
 package com.example.leooguitarlooper;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -10,7 +11,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -23,7 +23,7 @@ import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
 
-    private List<Project> projectList = new ArrayList<>();
+    private final List<Project> projectList = new ArrayList<>();
     private ProjectAdapter projectAdapter;
     private SharedPreferences sharedPreferences;
     private static final String PREFS_NAME = "ProjectPrefs";
@@ -80,16 +80,12 @@ public class MainActivity extends AppCompatActivity {
         });
 
         FloatingActionButton fab = findViewById(R.id.fab_add_project);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                showCreateProjectDialog();
-            }
-        });
+        fab.setOnClickListener(view -> showCreateProjectDialog());
 
         updateNoProjectsView();
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     private void loadProjects() {
         Gson gson = new Gson();
         String json = sharedPreferences.getString(PROJECTS_KEY, null);
@@ -114,6 +110,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showCreateProjectDialog() {
+
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Создайте проект");
 

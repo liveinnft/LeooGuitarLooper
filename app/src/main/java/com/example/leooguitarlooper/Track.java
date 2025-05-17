@@ -1,8 +1,8 @@
 package com.example.leooguitarlooper;
 
 public class Track {
-    private String filePath;
-    private String trackId;
+    private final String filePath;
+    private final String trackId;
     private String trackName;
     private boolean isMuted;
     private boolean isPlaying;
@@ -17,10 +17,6 @@ public class Track {
 
     public String getFilePath() {
         return filePath;
-    }
-
-    public String getTrackId() {
-        return trackId;
     }
 
     public String getTrackName() {

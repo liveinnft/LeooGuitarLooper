@@ -8,6 +8,10 @@
         <item name="android:statusBarColor">@color/colorBackground</item>
     </style>
 
+    <style name="CustomDialogButton" parent="Widget.AppCompat.Button">
+        <item name="android:textColor">@color/colorText</item> <!-- Цвет текста -->
+        <item name="android:background">@color/colorBackground</item> <!-- Цвет фона -->
+    </style>
 
     <!-- Style for ImageButton -->
     <style name="ImageButtonStyle">
