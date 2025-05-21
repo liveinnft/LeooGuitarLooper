@@ -59,10 +59,8 @@ public class RecordActivity extends AppCompatActivity {
     private ImageButton btnStartRecording;
     private CountDownTimer countDownTimer;
     private Project currentProject; // Добавлено для хранения текущего проекта
-    private boolean isRecording = false; // Флаг для отслеживания состояния записи
-    // Флаг для отслеживания состояния проигрывания
+    private boolean isRecording = false; // отслеживания состояния записи
 
-    /** @noinspection deprecation*/
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -203,7 +201,6 @@ public class RecordActivity extends AppCompatActivity {
         playNextTrack(0, true, longestTrackDuration);
     }
 
-    /** @noinspection CallToPrintStackTrace*/
     private int getLongestTrackDuration() {
         int longestTrackDuration = 0;
         for (Track track : trackList) {
@@ -227,7 +224,7 @@ public class RecordActivity extends AppCompatActivity {
         return longestTrackDuration;
     }
 
-    /** @noinspection CallToPrintStackTrace*/
+
     private void playNextTrack(int index, boolean startRecordingAfter, int longestTrackDuration) {
         if (index >= trackList.size()) {
             if (startRecordingAfter) {
@@ -275,7 +272,7 @@ public class RecordActivity extends AppCompatActivity {
         }
     }
 
-    /** @noinspection CallToPrintStackTrace*/
+
     private void startRecording() {
         // Начало записи новой дорожки
         backgroundHandler.post(() -> {
@@ -315,7 +312,6 @@ public class RecordActivity extends AppCompatActivity {
         });
     }
 
-    /** @noinspection ResultOfMethodCallIgnored*/
     private void stopRecording() {
         if (countDownTimer != null) {
             countDownTimer.cancel();
@@ -463,7 +459,6 @@ public class RecordActivity extends AppCompatActivity {
         backgroundThread.quitSafely();
     }
 
-    /** @noinspection deprecation*/
     @Override
     public boolean onSupportNavigateUp() {
         onBackPressed();

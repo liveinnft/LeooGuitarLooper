@@ -7,13 +7,13 @@ public class Project {
     private final String projectId;
     private String projectName;
     private List<Track> tracks;
-    private int trackCounter; // Добавлено для хранения текущего номера дорожки
+    private int trackCounter; // хранение текущего номера дорожки
 
     public Project(String projectId, String projectName) {
         this.projectId = projectId;
         this.projectName = projectName;
         this.tracks = new ArrayList<>();
-        this.trackCounter = 1; // Инициализация счетчика дорожек с 1
+        this.trackCounter = 1; // Инициализация счетчика дорожек
     }
 
     public String getProjectId() {
