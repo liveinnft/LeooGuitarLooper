@@ -29,6 +29,7 @@ public class ProjectAdapter extends RecyclerView.Adapter<ProjectAdapter.ProjectV
         public Button btnDelete;
         public Button btnRename;
 
+        /** @noinspection deprecation*/
         public ProjectViewHolder(View itemView, final OnItemClickListener listener) {
             super(itemView);
             tvProjectName = itemView.findViewById(R.id.tv_project_name);

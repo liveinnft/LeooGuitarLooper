@@ -32,6 +32,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvNoProjects;
     private ImageView ivArrow;
 
+    /** @noinspection deprecation*/
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

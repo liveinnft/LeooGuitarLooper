@@ -61,6 +61,7 @@ public class RecordActivity extends AppCompatActivity {
     private Project currentProject; // Добавлено для хранения текущего проекта
     private boolean isRecording = false; // отслеживания состояния записи
 
+    /** @noinspection deprecation*/
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -201,6 +202,7 @@ public class RecordActivity extends AppCompatActivity {
         playNextTrack(0, true, longestTrackDuration);
     }
 
+    /** @noinspection CallToPrintStackTrace*/
     private int getLongestTrackDuration() {
         int longestTrackDuration = 0;
         for (Track track : trackList) {
@@ -225,6 +227,7 @@ public class RecordActivity extends AppCompatActivity {
     }
 
 
+    /** @noinspection CallToPrintStackTrace*/
     private void playNextTrack(int index, boolean startRecordingAfter, int longestTrackDuration) {
         if (index >= trackList.size()) {
             if (startRecordingAfter) {
@@ -273,45 +276,13 @@ public class RecordActivity extends AppCompatActivity {
     }
 
 
+
     private void startRecording() {
         // Начало записи новой дорожки
-        backgroundHandler.post(() -> {
-            String trackId = UUID.randomUUID().toString();
-            fileName = Objects.requireNonNull(getExternalCacheDir()).getAbsolutePath() + "/audiorecordtest_" + trackId + ".m4a";
-            mediaRecorder = new MediaRecorder();
-            mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-            mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
-            mediaRecorder.setOutputFile(fileName);
-            mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
-            mediaRecorder.setAudioSamplingRate(44100);
-            mediaRecorder.setAudioEncodingBitRate(192000);
-
-            try {
-                mediaRecorder.prepare();
-                mediaRecorder.start();
-                isRecording = true; // Устанавливаем флаг записи
-                mainHandler.post(() -> {
-                    progressBar.setVisibility(View.VISIBLE);
-                    progress = 0;
-                    updateProgressRunnable = new Runnable() {
-                        @Override
-                        public void run() {
-                            progress += 1;
-                            if (progress > 100) {
-                                progress = 0;
-                            }
-                            progressBar.setProgress(progress);
-                            mainHandler.postDelayed(this, 100);
-                        }
-                    };
-                    mainHandler.post(updateProgressRunnable);
-                });
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
+        backgroundHandler.post(this::run);
     }
 
+    /** @noinspection ResultOfMethodCallIgnored*/
     private void stopRecording() {
         if (countDownTimer != null) {
             countDownTimer.cancel();
@@ -459,9 +430,48 @@ public class RecordActivity extends AppCompatActivity {
         backgroundThread.quitSafely();
     }
 
+
+    /** @noinspection deprecation*/
     @Override
     public boolean onSupportNavigateUp() {
         onBackPressed();
         return true;
+    }
+
+    /** @noinspection CallToPrintStackTrace*/
+    private void run() {
+        String trackId = UUID.randomUUID().toString();
+        fileName = Objects.requireNonNull(getExternalCacheDir()).getAbsolutePath() + "/audiorecordtest_" + trackId + ".m4a";
+        mediaRecorder = new MediaRecorder();
+        mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+        mediaRecorder.setOutputFile(fileName);
+        mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+        mediaRecorder.setAudioSamplingRate(44100);
+        mediaRecorder.setAudioEncodingBitRate(192000);
+
+        try {
+            mediaRecorder.prepare();
+            mediaRecorder.start();
+            isRecording = true; // Устанавливаем флаг записи
+            mainHandler.post(() -> {
+                progressBar.setVisibility(View.VISIBLE);
+                progress = 0;
+                updateProgressRunnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        progress += 1;
+                        if (progress > 100) {
+                            progress = 0;
+                        }
+                        progressBar.setProgress(progress);
+                        mainHandler.postDelayed(this, 100);
+                    }
+                };
+                mainHandler.post(updateProgressRunnable);
+            });
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
